@@ -3,7 +3,6 @@ from datetime import date
 import db_helper
 from typing import List
 from pydantic import BaseModel
-from logging_setup import set_up_logging
 
 class Expense(BaseModel):
     category: str
@@ -15,31 +14,26 @@ class DateRange(BaseModel):
     end_date: date
 
 app=FastAPI()
-logger = set_up_logging("server",log_file="postman_logs.log")
 
 @app.get("/expenses/{date}",response_model = List[Expense])
 def get_expenses_by_date(date:date):
-    # logger.log(f"fetched expenses from postman")
     expense = db_helper.fetch_expenses_for_date(date)
-    logger.info(f"fetched expenses from postman  - {expense}")
-
     return expense
-    # return f"request received for {date}"
 
 @app.post("/expenses/{expense_date}")
 def insert_expenses_by_date(expense_date:date, expenses: List[Expense]):
 
     db_helper.delete_expenses_for_date(expense_date)
     for expense in expenses:
-        print(expense)
+        
         db_helper.insert_expense(expense_date, expense.amount, expense.category, expense.notes)
     
     return f"expenses inserted/updated"
     # return f"request received for {date}"
 
-@app.post("/analytics")
+@app.post("/category_summary/")
 def get_expenses_between_dates(date_range:DateRange):
-    data = db_helper.fetch_expenses_between_dates(date_range.start_date,date_range.end_date)
+    data = db_helper.fetch_expense_summary(date_range.start_date,date_range.end_date)
     if data is None:
         raise HTTPException(status_code=500,detail = "fetch expense summary failed")
     
@@ -55,10 +49,18 @@ def get_expenses_between_dates(date_range:DateRange):
                      
     return summary
 
-@app.get("/analytics")
+@app.get("/monthly_summary/")
 def get_all_expenses_by_month():
-    data = db_helper.fetch_expenses_by_month()
+    data = db_helper.fetch_monthly_expense_summary()
     if data is None:
         raise HTTPException(status_code=500,detail = "fetch expense by month failed")
     return data
 
+
+@app.post("/daily_summary/")
+def get_analytics_by_day(date_range: DateRange):
+    daily_summary = db_helper.fetch_daily_expense_summary(date_range.start_date, date_range.end_date)
+    if daily_summary is None:
+        raise HTTPException(status_code=500, detail="Failed to retrieve daily expense summary from the database.")
+
+    return daily_summary

@@ -48,9 +48,9 @@ def add_update_tab():
            filtered_expenses = [expense for expense in expenses if expense['amount'] > 0]
            response = requests.post(f"{API_URL}/expenses/{selected_date}",json=filtered_expenses)
            if response.status_code == 200:
-              st.write(f"DB updated successful")
+              st.write(f"DB updated successfully")
            else:
-              st.write(f"db update failed")
+              st.write(f"DB update has failed {response.reason}")
     
                   
    
